@@ -1,0 +1,595 @@
+<html>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-16">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<script src="maze_generators.js"></script>
+	<title>Document</title>
+
+
+
+</head>
+<style>
+	canvas {
+		border: 1px solid red;
+		/* transform: scale(1); */
+		z-index: -1;
+	}
+</style>
+
+
+<body>
+	<canvas id="vvcanvas"></canvas>
+	<pre id="ttt" style="display:none">
+Speaking words of wisdom, let it be
+And in my hour of darkness she is standing right in front of me
+Speaking words of wisdom, let it be
+</pre>
+	<pre id=out></pre>
+	<script src="visibstrict.js"></script>
+	<script>
+
+		p = x => out.innerText += x
+		pjsn = x => p(JSON.stringify(x, null, 2))
+		pl = x => p(x + "\n")
+		as = (...x) => x.join('')
+		ap = (...x) => p(as(...x))
+		apl = (...x) => pl(as(...x))
+
+		window.onerror = (...x) => {
+			//x[2] = x[2] - 8;
+			console.error(x);
+			pl(x);
+		}
+
+		say = console.log
+
+
+		sa = x => say(x);
+		say(2)
+
+		p = x => out.innerText += x
+		pjsn = x => p(JSON.stringify(x, null, 2))
+		pl = x => p(x + "\n")
+		as = (...x) => x.join('')
+		ap = (...x) => p(as(...x))
+		apl = (...x) => pl(as(...x))
+	</script>
+
+
+
+	<script>
+
+	</script>
+	<script>
+		gameRunningID = -734;
+		function mulberry32(a) {
+			//needs some way of reseting it
+			return function () {
+				var t = a += 0x6D2B79F5;
+				t = Math.imul(t ^ t >>> 15, t | 1);
+				t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+				return ((t ^ t >>> 14) >>> 0) / 4294967296;
+			}
+		}
+		seed = 0;//Math.floor(Math.random() * 1000)
+		rndfunc = mulberry32(seed);
+
+		nlrgx = /(\r\n|\n|\r)/gm;
+		dnc = " !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
+		const l = 21
+		const ll = l * l;
+		const d32 = 0.3125;
+
+
+
+
+		function random_int(min, max) { // min and max included 
+			return Math.floor(rndfunc() * (max - min) + min)
+		}
+
+
+		function rndintuniq(min, max, uniq, ori) {
+			let ri2;
+			for (let i = 0; i < 1000; i++) {
+				let ri = random_int(min, max)
+				if (ri in uniq) {
+					continue;
+				}
+
+				uniq[ri] = ori;//remember original index for reverse
+				ri2 = ri
+				//translation
+				break;
+			}
+			return ri2;
+		}
+
+		let my_interval = null;
+		grid_clean = true;
+		generating = false;
+		var lurdvecs = [{ x: -1, y: 0 }, { x: 0, y: -1 }, { x: 1, y: 0 }, { x: 0, y: 1 }]
+		if (window.timeouts) {
+
+			for (let i = 0; i < timeouts.length; i++)
+				clearTimeout(timeouts[i]);
+
+		}
+
+		timeouts = [];
+		let aa = Array(l).fill(0).map((x, i) => i)
+		let grid = aa.map(
+			(x, i) => aa.map(
+
+				x => {
+					// bb is just mockup chartable to imitate texture
+					let tti = (x + i * l)
+
+					let uu = 0; '  ';//random_int(0, 5) ? ' ' : '#';
+					return uu;
+				}
+			))
+
+		function add_wall(x, y) {
+			grid[x][y] = -1;// '# '; String.fromCodePoint(20400);
+		}
+		function remove_wall(x, y) {
+			grid[x][y] = 0;// '  '; String.fromCodePoint(20400);
+
+		}
+		function get_node(x, y) {
+			if (x >= 0 && x < grid.length && y >= 0 && y < grid[0].length)
+				return grid[x][y];
+
+			return -2;
+		}
+
+
+		// fill_walls()
+		// show()
+		// // // fill()
+		// enclose()
+		// show()
+
+
+		class Cell {
+			static grid = grid
+			constructor(x, y, c) {
+				this.x = x
+				this.y = y
+				this.c = c
+				this.acc = -99;
+				this.warm = {}
+			}
+			get u() {
+				if (this.y == 0) return null;
+				return grid[this.x][this.y - 1]
+			}
+			get d() {
+				if (this.y == l - 1) return null;
+				return grid[this.x][this.y + 1]
+			}
+			get l() {
+				if (this.x == 0) return null;
+				return grid[this.x - 1][this.y]
+
+			}
+			get r() {
+				if (this.x == l - 1) return null;
+				return grid[this.x + 1][this.y]
+			}
+			onCollide(collidingObject, lurd) {
+				// console.log("colliding")
+
+
+				// draw_wall(this.x, this.y, "rgba(255,0,0,.1)")
+				return this.c;
+			}
+			onInside(objectInside) {
+				//objectInside.health++;
+				return this.c;
+			}
+			draw(overridecolor) {
+				draw_wall(this.x, this.y, overridecolor ? overridecolor : this.c)
+				ctx.fillStyle = "pink"
+				// ctx.textAlign = "center";
+				// ctx.textBaseline = "middle";
+				ctx.font = "10px sans-serif";
+				ctx.fillText(this.x + ",", (this.x * cellsize), (this.y * cellsize) + cellsize - 10)
+				ctx.fillText(this.y, (this.x * cellsize), (this.y * cellsize) + cellsize)
+			}
+
+		}
+
+		function forNbs(parx, pary, distance, arr, func) {
+			let c = grid[parx][pary];
+			if (arr.includes(c)) return;
+			// let c = grid[pary][parx]
+			func(c, parx, pary, distance, arr);
+			if (!arr.includes(c)) arr.push(c);
+			if (distance < 1) return arr;
+			lurdvecs.forEach(dv => {
+				return forNbs(parx + dv.x, pary + dv.y, distance - 1, arr, func)
+			})
+			return arr;
+		}
+
+		function rndEmptySpace(min, max) {
+			let riw = random_int(min, max)
+			let rix = random_int(riw + 1, l - 1 - riw)
+			let riy = random_int(riw + 1, l - 1 - riw)
+			let rc = grid[riy][rix]
+			forNbs(rix, riy, riw, [], (c, x, y) => {
+				grid[y][x].c = 0;
+			})
+		}
+
+		function rndStructure(min, max) {
+			let riw = random_int(min, max)
+			let rix = random_int(riw + 1, l - 1 - riw)
+			let riy = random_int(riw + 1, l - 1 - riw)
+			// let rc = grid[riy][rix]
+			let finarr = forNbs(rix, riy, riw, [], (c, x, y, d) => {
+				// draw_wall(x, y, 'rgba(0,0,255,' + (d * .3) + ')')
+				// if (!c.acc) c.acc = 1;
+				c.acc = d;
+				c.c = 0;
+				// ctx.fillStyle = "pink"
+				// // ctx.textAlign = "center";
+				// // ctx.textBaseline = "middle";
+				// ctx.font = "12px sans-serif";
+				// ctx.fillText(c.acc + "", (x * cellsize), (y * cellsize) + cellsize)
+			})
+			console.log(finarr.length)
+			finarr.forEach(c => {
+				// let d = c.acc;
+				if (c.acc === riw) {//c.acc === 4) {
+					console.log(max)
+					c.c = -1
+					return;
+				}
+				// if (d < riw) {
+				// 	grid[y][x].c = 0;
+				// }
+			})
+			return { riw, rix, riy };
+		}
+
+		function drawMaze() {
+			for (i = 0; i < grid.length; i++) {
+				// p('\n')
+
+				for (j = 0; j < grid[0].length; j++) {
+					let c = grid[j][i];
+					c.draw()
+				}
+			}
+		}
+
+
+		function onMazeReady() {
+			let i, j;
+
+
+			// let nbs = 
+
+			for (i = 0; i < grid.length; i++) {
+				// p('\n')
+
+				for (j = 0; j < grid[0].length; j++) {
+					let c = grid[j][i];
+					if (c != 0 && c != -1) c = 0;
+					let nuCell = new Cell(j, i, c);
+					grid[j][i] = nuCell;
+
+				}
+			}
+			// rndEmptySpace(3, 5)
+			// rndEmptySpace(1, 4)
+			// rndStructure(1, 3)
+			// rndStructure(4, 5)
+			// drawMaze()
+		}
+		const canvas = document.getElementById('vvcanvas');
+
+		const ctx = canvas.getContext('2d');
+		ctx.textAlign = "center";
+		ctx.textBaseline = "middle";
+		ctx.font = "15px sans-serif";
+		var cellsize = 20;
+		var cellw = cellsize / 2;
+		const plr1 = {
+			id: 0,
+			x: 25, y: 25,
+			w: 6,
+			spd: { x: 0, y: 0 },
+			cell: { x: 1, y: 1 },
+			clr: 'red'
+		}
+		const plr2 = {
+			id: 1,
+			x: 25, y: 25,
+			w: 6,
+			spd: { x: 0, y: 0 },
+			cell: { x: l - 2, y: l - 2 },
+			clr: 'green'
+		}
+		plrs = [plr1, plr2]
+		plrs.forEach(plr => {
+			plr.x = (plr.cell.x * cellsize) + cellsize / 2;
+			plr.y = (plr.cell.y * cellsize) + cellsize / 2;
+		})
+		// console.log(plr1)
+		canvas.width = cellsize * l
+		canvas.height = cellsize * l
+
+		function draw_wall(x, y, c = 'rgba(0,255,0,1)') {
+			// return;
+			// console.log(isNaN(c))
+			ctx.fillStyle = (isNaN(c)) ?
+				c : c == 0 ?
+					'transparent' : c == -1 ?
+						'black' : c == -2 ?
+							'gray' : 'yellow';
+			ctx.fillRect(x * cellsize, y * cellsize, cellsize, cellsize)
+		}
+
+		function draw_plr(plr) {
+			// const ctx = canvas.getContext('2d');
+			// ctx.
+			ctx.clearRect(plr.prv.x - plr.w, plr.prv.y - plr.w, plr.w * 2, plr.w * 2)
+			ctx.fillStyle = plr.clr;
+			ctx.fillRect(plr.x - plr.w, plr.y - plr.w, plr.w * 2, plr.w * 2)
+		}
+		// kruskal_algorithm()
+		// prim_algorithm()
+		// wilson_algorithm()
+		// aldous_broder_algorithm()
+		// recursive_division()
+		// show()
+		randomized_depth_first()
+
+		var frameNumber = 0;
+
+		// plr pos modulo cellsize
+		// cellsize
+		function collideWithinCell() {
+			let x = plr1.x;
+			let y = plr1.y;
+
+		}
+
+		function willTouchBoundinAxis(px, psx, pw, cbx) {
+			return px + pw + psx > cbx;
+		}
+
+
+		function willCrossCellBounds(px, psx, pw, cbx) {
+			return px + psx > cbx;
+		}
+
+		function isCollidingOnAxis(v1x, v2x, e1d, e2d, v1spx, v2spx) {
+			b1 = (v1x + e1d + v1spx) > (v2x - e2d + v2spx) //right edge 1 behind left edge 2
+			b2 = (v1x - e1d + v1spx) < (v2x + e2d + v2spx) //left edge 1 before right edge 2
+			bRtoL1scenario = b1 && b2
+		}
+
+		function updPos(plr) {
+			plr.x = plr.x + plr.spd.x;
+			plr.y = plr.y + plr.spd.y;
+		}
+
+		function collide(plr) {
+			let pcx = Math.floor(plr.x / cellsize)
+			let pcy = Math.floor(plr.y / cellsize)
+			//player in cell x
+			let picx = plr.x % cellsize;
+			let picy = plr.y % cellsize;
+			let curcell = grid[pcx] && grid[pcx][pcy]
+			plr.cell = curcell;
+
+			// console.log({ curcell, pcx, pcy })
+			if (!curcell) throw Error("outOfBounds!!!")
+			// plr.cell.x = pcx
+			// plr.cell.y = pcy
+			// cl = pcx * cellsize
+
+			//will touch left bound
+			wtlb = picx - plr.w + plr.spd.x <= 0;
+			wtrb = picx + plr.w + plr.spd.x >= cellsize;
+			if (wtlb) {
+				// console.log(wtlb)
+				let lurd = 1
+				// plr.spd.x = 0;
+				let collindingCell = curcell.l
+				if (!collindingCell) throw Error("no Colliding Cell!!!")
+				let wallcode = collindingCell.onCollide(plr, lurd)
+				// console.log({ wallcode })
+				if (wallcode == -1) {
+					plr.spd.x = 0;
+					plr.x++;
+				}
+				// if (grid)
+			}
+
+			if (wtrb) {
+				let lurd = 3
+				// plr.spd.x = 0;
+				let collindingCell = curcell.r
+				if (!collindingCell) throw Error("no Colliding Cell!!!")
+				let wallcode = collindingCell.onCollide(plr, lurd)
+				// console.log({ wallcode })
+				if (wallcode == -1) {
+					plr.spd.x = 0;
+					plr.x--;
+				}
+			}
+
+			wtub = picy - plr.w + plr.spd.y <= 0;
+			wtdb = picy + plr.w + plr.spd.y >= cellsize;
+			if (wtub) {
+				// console.log(wtlb)
+				let lurd = 2
+				// plr.spd.x = 0;
+				let collindingCell = curcell.u
+				if (!collindingCell) throw Error("no Colliding Cell!!!")
+				let wallcode = collindingCell.onCollide(plr, lurd)
+				// console.log({ wallcode })
+				if (wallcode == -1) {
+					plr.spd.y = 0;
+					plr.y++;
+				}
+				// if (grid)
+			}
+			if (wtdb) {
+				let lurd = 4
+				// plr.spd.x = 0;
+				let collindingCell = curcell.d
+				if (!collindingCell) throw Error("no Colliding Cell!!!")
+				let wallcode = collindingCell.onCollide(plr, lurd)
+				// console.log({ wallcode })
+				if (wallcode == -1) {
+					plr.spd.y = 0;
+					plr.y--;
+				}
+			}
+			// wtrb = picx + pw + psx > cellsize;
+			//cellrect
+
+			// let c = plr.cell
+			// let cx = c.x
+			// let cy = c.y
+
+			//figure out which cell player is in
+
+
+			// cr = (cx + 1) * cellsize
+			// cu = cy * cellsize
+			// cd = (cy + 1) * cellsize
+
+			grid[pcx][pcy].draw('rgba(0,255,0,.01)')
+		}
+
+		function howRepulsive(c, plr) {
+			rep = 0
+			rep += c.c === - 1 ? .6 : 0;
+			if (plr.id in c.warm) {
+				rep += (c.warm[plr.id]) * .02
+				c.warm[plr.id] += .05
+			} else {
+				c.warm[plr.id] = .05
+			}
+			return rep
+
+
+			// rep += c.warm
+		}
+
+		function decide(plr) {
+			let pc = plr.cell;
+			if (plr.id in pc.warm) {
+				pc.warm[plr.id]++
+			} else {
+				pc.warm[plr.id] = 1
+			}
+
+
+
+
+			plr.spd.y += howRepulsive(pc.u, plr)
+			plr.spd.y += -howRepulsive(pc.d, plr)
+			plr.spd.x += howRepulsive(pc.l, plr)
+			plr.spd.x += -howRepulsive(pc.r, plr)
+
+			// if (pc.u.warm[plr.id] == -1) plr.spd.y += .6
+			// if (pc.d.c == -1) plr.spd.y += -.6
+			// if (pc.l.c == -1) plr.spd.x += .6
+			// if (pc.r.c == -1) plr.spd.x += -.6
+
+			// d = pc.left()
+			// xxx = d.x
+			// yyy = d.y
+			// draw_wall(xxx, yyy, 'pink')
+			//plr.spd.x += (1-(1+pc.left().c - pc.right().c))*.5
+			//plr.spd.y += (1-(-1*pc.up().c - pc.down().c))*-.5
+			plr.spd.x += (Math.random() - .5) * 1
+			plr.spd.y += (Math.random() - .5) * 1
+			//console.log(plr.spd.x)
+
+		}
+
+		function gameframe() {
+			frameNumber++;
+			// console.log(frameNumber % 10);
+			plrs.forEach(plr => {
+
+				plr.prv = { x: plr.x, y: plr.y }
+
+				collide(plr)
+				//plr.spd = { x: random_int(-3,3), y: random_int(-3,3) }
+				decide(plr)
+
+				updPos(plr)
+				visibleAround(plr);
+			});
+
+			plrs.forEach(plr => {
+				draw_plr(plr)
+				// collide(plr)
+				//plr.spd = { x: 0, y: 0 }
+				plr.spd.x *= .99;
+				plr.spd.y *= .99;
+			});
+			frameNumber++;
+			// console.log(frameNumber % 10);
+			setTimeout(x => {
+				gameframe()
+			}, 50)
+		}
+
+
+
+		function startGame() {
+			ctx.clearRect(0, 0, canvas.width, canvas.height)
+			drawMaze()
+			plrs.forEach(plr => {
+				plr.cell = grid[plr.cell.x][plr.cell.y]
+			})
+			if (gameRunningID === - 734) {
+				gameRunningID = setTimeout(x => {
+					gameframe()
+				}, 10)
+			}
+		}
+		const acc = 2;
+		// draw_wall()
+		window.addEventListener('keydown', (e) => {
+			// console.log(e.key)
+			switch (e.key) {
+				case 'a':
+					plr1.spd.x = -acc
+					break;
+				case 'd':
+					plr1.spd.x = acc
+					break;
+				case 'w':
+					plr1.spd.y = -acc
+					break;
+				case 's':
+					plr1.spd.y = acc
+					break;
+
+
+			}
+		});
+		window.addEventListener('touchstart', (e) => {
+			randomized_depth_first()
+		});
+	</script>
+</body>13apvatrowe;
+
+
+</html>
