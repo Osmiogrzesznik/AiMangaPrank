@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    	<script>
+    	
+    this_is_at =
+    `
+    https://gist.github.com/Osmiogrzesznik/2f814920d4e2007fd4b97d14adad5a2c
+    `
+    
+    
+    
+    
+	window.onerror = function(...x) {
+					x[2] = x[2] - 8;
+					console.error(x);
+				}	
+		say = console.log
+		
+	</script>
+    <title>WebGL Video Shader</title>
+    <style>
+        body { text-align: center; background: black; color: white; margin:0; }
+        canvas { display: block; width:100vw; margin-top:10; }
+        .controls { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; }
+      #frag,#fragDefs{
+display: none;
+}  
+btn{
+border:1px solid cyan;	
+padding:10px;
+background:#ddaa55;
+}	
+    </style>
+</head>
+<body>
+<pre id="fragDefs">
+	precision highp float;
+	#define PI 3.141592653589793
+	precision mediump float;
+    uniform sampler2D uvid;
+    uniform sampler2D uvid2;
+    uniform sampler2D uaudio;
+    uniform vec2 resolution;
+    uniform vec3 keyColor;
+    varying vec2 vTexCoord;
+    
+   // https://www.shadertoy.com/view/Xt23Ry
+   
+	</pre>
+	<script type="shader" id="frag">
+		
+	highp	float rand(float co) { return fract(sin(co*(91.3458)) * 47453.5453); }
+highp float rand(vec2 co){ return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453); }
+highp float rand(vec3 co){ return rand(co.xy+rand(co.z)); }
+
+    
+// expects values in the range of [0,1]x[0,1], returns values in the [0,1] range.
+// do not collapse into a single function per: http://byteblacksmith.com/improvements-to-the-canonical-one-liner-glsl-rand-for-opengl-es-2-0/
+
+vec2 RGBtoUV(vec3 rgb) {
+  return vec2(
+    rgb.r * -0.169 + rgb.g * -0.331 + rgb.b *  0.5    + 0.5,
+    rgb.r *  0.5   + rgb.g * -0.419 + rgb.b * -0.081  + 0.5
+  );
+}    
+
+
+	
+	
+
+
+
+highp float rand3js( const in vec2 uvin ) {
+
+	const lowp float a = 12.9898, b = 78.21133, c = 43758.5453111;
+
+	highp float dt = dot( uvin.xy, vec2( a,b ) ), sn = mod( dt, PI );
+
+	return fract( sin( sn ) * c);
+
+}
+
+float fade(float value, float start, float end)
+{
+    return (clamp(value,start,end)-start)/(end-start);
+}
+
+lowp vec2 pixUv(vec2 gfcouv,float lvsf,float cc){
+	vec2 lvs = resolution*lvsf/min(resolution.x,resolution.y);
+	lvs /= .25;
+	lvs /= cc;
+	vec2 uv = gfcouv/resolution.xy;
+	uv.y = 1.-uv.y;
+	vec2 ouv = uv;
+vec2 uvint =  floor(uv*lvs);
+ouv = uvint/lvs;
+ouv += .5/lvs;	
+//ouv = mix(ouv,uv,ddd);
+return ouv;
+}	
+
+
+
+float sin2(float xy,float ud){
+highp float ff;
+//highp float ff = sin(x*10.*ud);
+ff = abs(mod(xy,1.*ud) - ud/2.);
+//highp float ff = 
+//ff= smoothstep(-1.,1.,ff);
+highp float f = ff+.5;//(-0.+ff*.2)+0.5;	
+return f;
+	}
+	
+highp float rand2(float co) { return fract(sin2(co*91.3458,1.) * 47453.5453); }
+	
+float sin1(float x,float ud){
+highp float ff;
+//highp float ff = sin(x*10.*ud);
+ff = sin(1.*ud) - ud/2.;
+//highp float ff = 
+//ff= smoothstep(-1.,1.,ff);
+highp float f = ff+.5;//(-0.+ff*.2)+0.5;	
+return f;
+	}
+	
+	
+	
+
+	vec2 swirluv(vec2 fco,vec2 ctr, float rad, float ang) {
+	//	float fading = (fade(time,-2.,4.));
+		float effectRadius = rad;
+    float effectAngle = ang* PI;
+    
+    vec2 center = ctr / resolution.xy;
+    center = center == vec2(0., 0.) ? vec2(.5, .5) : center;
+    
+    vec2 uv = fco.xy / resolution.xy - center;
+    
+    float len = length(uv * vec2(resolution.x / resolution.y, 1.));
+    float angle = atan(uv.y, uv.x) + effectAngle * smoothstep(effectRadius, 0., len);
+    float radius = length(uv);
+
+    return vec2(radius * cos(angle), radius * sin(angle)) + center;
+
+
+            }
+           
+
+            
+  void maineee() {
+                vec2 uv = vTexCoord;
+                vec2 uvud= vTexCoord;
+                uvud.y = 1.-uvud.y;
+                vec4 videoColor = texture2D(uvid, uv);
+                vec4 videoColor2 = texture2D(uvid2, uv);
+                vec4 videoColor3 = texture2D(uaudio, uv);
+
+               // float audioSample = texture2D(uaudio, uvud).r;
+              //  videoColor.rgb += ( (audioSample/2.) );
+              vec4 cc;
+              cc.r = videoColor.r;
+              cc.g = videoColor2.g;
+              cc.b = videoColor3.b;
+                if(uv.x > .9 && uv.y > .9){
+                	cc.rgb = vec3(aud00);
+                }
+                
+                
+                gl_FragColor = cc;
+                gl_FragColor.a = 1.;
+            }       
+void main(){
+	float ub = ubb*ud*ud2;
+	vec2 fuv;
+	vec2 rcco = vec2(ucr1+.5,ucr2+.5)*resolution;
+	vec2 ouv = gl_FragCoord.xy/resolution.xy;
+	ouv.y = 1.-ouv.y;
+	ouv = pixUv( gl_FragCoord.xy, 128.*uc*ucc,.25);
+vec4 v2c = texture2D(uvid2,ouv);
+vec4 v1c = texture2D(uvid,ouv);
+
+//float uvaud = (ouv);
+float dist = .66-distance(ouv,vec2(.5+rand(v2c.rgb),.5+rand(v1c.rgb)));
+vec2 vec2uvaud = vec2(dist);
+float bigvac = texture2D(uaudio,vec2uvaud).r;
+//vac = 1.-vac;
+float vac = bigvac;// rand(bigvac*.00001)*.001;//fract(pow(sin(bigvac+ouv.x),bigvac));
+float v2cr = rand((v2c.rgb+ouv.x+vac)*ub*33.0001);
+float v2cr2 = rand((v2c.brg-ouv.y+vac)*ub*33.00002);
+float v2cr3 = rand((v2c.gbr+ouv.x+ouv.y+vac)*ub*33.00003);
+
+float v1cr = rand((v1c.rgb+ouv.x+vac)*ub*33.00001);
+float v1cr2 = rand((v1c.rgb-ouv.y+vac)*ub*33.0002);
+float v1cr3 = rand((v1c.rgb+ouv.x+ouv.y+vac)*ub*33.00012);
+
+float v12cr = rand((v2c.rgb+v1cr-ouv.x+vac)*ub*33.000042);
+float v12cr2 = rand((v2c.brg+v1cr2+ouv.y+vac)*ub*33.00021);
+float v12cr3 = rand((v2c.gbr+v1cr3+ouv.x-ouv.y+vac)*ub*33.00011);
+//v2cr = mix(v2cr,v2cr2,0.5);
+//v2cr = step(ua,v2cr);
+vec2 suv0 = ouv;//swirluv(ouv,rcco,1.,ucr4ang);
+vec3 v2crv;
+
+v2crv.r = v2cr + v12cr;	
+v2crv.g = v2cr2 + v12cr2;
+v2crv.b = v2cr3 + v12cr3;
+v2crv = pow(v2crv,vec3(ua+.75));
+vec4 gfc;
+gfc = texture2D(uvid,ouv);
+vec4 gfc2;
+gfc2 = texture2D(uvid2,ouv);
+vec2 ruv = RGBtoUV(v2crv.rgb)-.5;
+vec2 wuv = ouv+ruv;
+float pasmo = texture2D(uaudio,vec2(rad2,0.)).r;
+vec4 finv2crv = texture2D(uvid2,mix( ouv,wuv,rad1*pasmo));
+	if(ulyr == 0.1){
+		gfc = texture2D(uvid,ouv);
+		}
+	if(ulyr == 0.2){
+		gfc = texture2D(uvid2,ouv);
+		}
+	if(ulyr == 0.3){
+				gfc.rgb = finv2crv.rgb;
+		}
+	if(ulyr == 0.5){
+				gfc.rgb = vec3(bigvac);
+		}
+	
+		
+		
+		gl_FragColor.rgb = gfc.rgb;
+		gl_FragColor.a = 1.;
+	}
+
+   
+	</script>
+
+    <canvas id="glCanvas"></canvas>
+    <input type="file" id="videoInput">
+    <btn onclick = "play(!(pg++ % 2) )">dddd</btn>
+    <input type="file" id="audioInput" >
+    <video id="video" src="../../../DCIM/Camera/40.mp4" 
+cross-origin="anonymous" 
+        loop
+        muted
+        autoplay
+        style="display:none;">
+</video>
+<video id="video2" src="../../../DCIM/Camera/41.mp4" 
+cross-origin="anonymous" 
+        loop
+        muted
+        autoplay
+        style="display:none;">
+</video>
+    <audio id="audioElement" controls style="display:block;margin:auto;" src="../../../DCIM/Screen recordings/42.mp4" 
+loop
+       
+        autoplay></audio>
+    <div class="controls" id="controls"></div>
+    <script>
+    	var ranms = [];
+    	var pg=0;
+        // WebGL setup
+        const canvas = document.getElementById('glCanvas');
+        const gl = canvas.getContext('webgl2');
+        if (!gl) { alert('WebGL not supported'); }
+
+        // Fragment Shader with dynamic uniforms
+        let fragShaderSrc = fragDefs.innerText;
+        const controlsContainer = document.getElementById('controls');
+        const uniforms = {};
+
+        
+//=-------=-------=-------=-------=-------=-------=-------=-------=-------;;;;;;;;;=-------=-------=-------;        
+
+        // Adding uniforms here
+        
+        addUniformControl("ulyr", 0.1, 0.5, 0.1, .3);
+        addUniformControl("rad1", 0.00001, .99, 0.0001, 0.19691);
+        addUniformControl("rad2", 0.000, 1.0, 0.0000001, .62011);
+        addUniformControl("ua", 0.0000001, 1.0, 0.0000001, .5);
+        addUniformControl("ubb", 0.000001, .000009, 0.0000001, 0.000007);
+            addUniformControl("ud", .000001, 10, 0.001, 1.178);
+        addUniformControl("ud2", .000001, 10, 0.001, 0.346);
+        addUniformControl("uc", 0, 1.0, 0.001, 1);
+        addUniformControl("ucc", 0, 1.0, 0.0001, 1);
+    
+        addUniformControl("ue", .000001, 1, 0.001, 1.0);
+        addUniformControl("ucr1", 0.0, 1.0, 0.01, 1.0,v=>ranm(0,124,v));
+        addUniformControl("ucr2", 0.0, 1.0, 0.01, 1.0,v=>ranm(1,3000,v));
+        addUniformControl("ucr3", 0.0, 93.0, 0.01, 1.0,v=>ranm(2,2330,v));
+        addUniformControl("ucr4ang", -1.0, 1.0, 0.01, 1.0,v=>ranm(3,130,v));
+        addUniformControl("aud00", -1.0, 1.0, 0.01, 1.0,v=>aud(v));
+        
+//posterize colors
+// -=-------=-------=-------=-------=-------=-------=-------=-------=-------=-------=-------=-------=-------=-------=-------=-------=-------=-------
+
+function aud(v) {
+if(!audioData) return 1;
+let hl = audioData.length;
+hl /= 2;
+hl = hl | 0;
+return audioData[hl]/255
+}
+
+say(frag.innerText)
+        fragShaderSrc += frag.innerText;
+
+        let program, videoTexture, videoTexture2, positionBuffer, texCoordBuffer, vao, uniformLocations = {};
+        
+        const audio = document.getElementById('audioElement');
+        document.getElementById('audioInput').addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                audio.src = url;
+                //audio.play();
+                
+            }
+        });
+
+        
+let audioContext, analyser, audioData, audioTexture;
+ audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const source = audioContext.createMediaElementSource(audio);
+            analyser = audioContext.createAnalyser();
+            analyser.fftSize = 512;
+            source.connect(analyser);
+            analyser.connect(audioContext.destination);
+
+            audioData = new Uint8Array(analyser.frequencyBinCount);      
+
+
+// Video setup
+        
+        video.crossOrigin = "anonymous";
+        video.loop = true;
+        video.muted = true;
+        video.style.display = 'none';
+        video2.crossOrigin = "anonymous";
+        video2.loop = true;
+        video2.muted = true;
+        video2.style.display = 'none';
+        audio.crossOrigin = "anonymous";
+        audio.loop = true;
+        
+
+        document.getElementById('videoInput').addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+            	let askv = prompt("which video? 1 or 2 ?",1)
+            askv = parseInt(askv)
+            let vid;
+            vid = askv ==1? video:video2;
+                const url = URL.createObjectURL(file);
+                vid.src = url;
+                vid.play();
+            }
+        });
+        
+        
+
+        video.addEventListener('loadedmetadata', () => {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+            initWebGL();
+            setupAudioProcessing();
+        });
+
+
+
+
+ function setupAudioProcessing() {
+            
+
+            
+        }
+
+
+
+function TRYRAWONEDAYcopyAudioDataToTexture(gl, audioData, textureArray) {
+  for (let i = 0; i < audioData.length; i++) {
+    textureArray[4 * i + 0] = audioData[i] // R
+    textureArray[4 * i + 1] = audioData[i] // G
+    textureArray[4 * i + 2] = audioData[i] // B
+    textureArray[4 * i + 3] = 255          // A
+  }
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, audioData.length, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, textureArray)
+}
+
+
+
+class Rao{
+	constructor(dur){
+		this.f=0;
+		this.dur = dur || 300;
+		this.pv = Math.random()-.5;
+		this.cv = Math.random()-.5;
+		this.ts = performance.now();
+		this.ted = this.ts+this.dur;
+		}
+	nuv(){
+		this.pv = this.cv
+		this.cv = Math.random()-.5;
+		this.ts = performance.now();
+		this.ted = this.ts+this.dur;
+		}
+	v(){
+		if(1-this.f<0){
+			this.nuv()
+			}
+		
+		
+		let {ts,dur,ted,f} = this;
+		f = (performance.now()-ts)/dur;
+		if(!f  && f !==0 ){
+			say(this)
+			throw Error(2);
+			}
+		this.f = f;
+		let f0 = 1-f;
+		let f1 = f;
+		let v = this.pv*f0+this.cv*f1;
+		return v;
+		}
+	}
+
+   function ranm(id=0,dur=3000,v){
+   	
+   	let rao = ranms[id];	
+   	if(!rao) {
+   	rao = new Rao(dur);
+   ranms[id] = rao;
+   return rao.v()*v;
+   }
+   else{
+   rao = ranms[id];	
+   //say(ranms);
+   if(!rao)throw Error(1);//return 0;//Math.random()-.5;
+   return rao.v()*v;
+   }
+}     
+
+        function addUniformControl(id, min, max, step, value,func) {
+        	
+            const input = document.createElement('input');
+            input.type = 'range';
+            input.id = id;
+            input.min = min;
+            input.max = max;
+            input.step = step;
+            input.value = value;
+
+            const label = document.createElement('label');
+            label.innerText = id;
+            label.htmlFor = id;
+
+            controlsContainer.appendChild(label);
+            controlsContainer.appendChild(input);
+
+            
+			
+			if(!func){
+			uniforms[id] = parseFloat(value);
+            input.addEventListener('input', (e) => {
+                uniforms[id] = parseFloat(e.target.value);
+                console.log('uniform:',id,'is',uniforms[id] )
+            });
+            }else{
+            uniforms[id] = {func:function(){return func(input.value)}}
+            }
+            
+
+            fragShaderSrc += `uniform float ${id};\n`;
+        }
+        
+        function initWebGL() {
+            // Create shaders
+            const vsSource = `
+                attribute vec4 position;
+                attribute vec2 texCoord;
+                varying vec2 vTexCoord;
+                void main() {
+                    gl_Position = position;
+                    vTexCoord = texCoord;
+                }
+            `;
+            const vertexShader = compileShader(gl.VERTEX_SHADER, vsSource);
+            const fragmentShader = compileShader(gl.FRAGMENT_SHADER, fragShaderSrc);
+
+            // Create program
+            program = gl.createProgram();
+            gl.attachShader(program, vertexShader);
+            gl.attachShader(program, fragmentShader);
+            gl.linkProgram(program);
+
+            if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+                console.error("Shader link error: " + gl.getProgramInfoLog(program));
+                return;
+            }
+            gl.useProgram(program);
+
+            // Create buffers
+            positionBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+                -1, -1,  1, -1,  -1, 1,  
+                -1, 1,  1, -1,  1, 1
+            ]), gl.STATIC_DRAW);
+
+            texCoordBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+                0, 1,  1, 1,  0, 0,  
+                0, 0,  1, 1,  1, 0
+            ]), gl.STATIC_DRAW);
+
+            vao = gl.createVertexArray();
+            gl.bindVertexArray(vao);
+
+            const posLoc = gl.getAttribLocation(program, "position");
+            gl.enableVertexAttribArray(posLoc);
+            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+            gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+
+            const texLoc = gl.getAttribLocation(program, "texCoord");
+            gl.enableVertexAttribArray(texLoc);
+            gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+            gl.vertexAttribPointer(texLoc, 2, gl.FLOAT, false, 0, 0);
+
+            // Texture setup
+            gl.activeTexture(gl.TEXTURE0);
+            videoTexture = gl.createTexture();
+            
+            gl.bindTexture(gl.TEXTURE_2D, videoTexture);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+            
+            gl.activeTexture(gl.TEXTURE1);
+            videoTexture2 = gl.createTexture();
+            
+            gl.bindTexture(gl.TEXTURE_2D, videoTexture2);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+            
+            
+            
+            gl.activeTexture(gl.TEXTURE2);
+            audioTexture = gl.createTexture();
+            
+            gl.bindTexture(gl.TEXTURE_2D, audioTexture);
+            
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, audioData.length, 1, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, audioData);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+
+            // Uniform locations
+           // kurwa kurwa sprobuj terazx
+           
+
+            for (let key in uniforms) {
+                uniformLocations[key] = gl.getUniformLocation(program, key);
+            }
+uniformLocations.uvid =  gl.getUniformLocation(program, "uvid");
+           uniformLocations.uvid2 =  gl.getUniformLocation(program, "uvid2");
+           uniformLocations.uaudio =  gl.getUniformLocation(program, "uaudio");
+           gl.activeTexture(gl.TEXTURE0);
+           gl.uniform1i(uniformLocations.uvid, 0);
+           gl.activeTexture(gl.TEXTURE1);
+           gl.uniform1i(uniformLocations.uvid2, 1);
+           gl.activeTexture(gl.TEXTURE2);
+           gl.uniform1i(uniformLocations.uaudio, 2);
+            
+            uniformLocations.resolution = gl.getUniformLocation(program, "resolution");
+            uniformLocations.keyColor = gl.getUniformLocation(program, "keyColor");
+gl.uniform3f(uniformLocations.keyColor, 0.0, 0.0, 0.0); // Default color
+  
+            render();
+        }
+
+        function compileShader(type, source) {
+            const shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                console.error("Shader error: " + gl.getShaderInfoLog(shader));
+                gl.deleteShader(shader);
+                return null;
+            }
+            return shader;
+        }
+        
+       function  play(tt){
+//	video.currentTime = 0;
+	
+
+	if(tt){
+video.play()
+video2.play()
+audio.play()
+}else{
+	video.pause()
+video2.pause()
+audio.pause()
+	}
+}
+  
+        function render() {
+            requestAnimationFrame(render);
+
+            gl.useProgram(program);
+            gl.bindVertexArray(vao);
+
+           gl.activeTexture(gl.TEXTURE0);
+          gl.bindTexture(gl.TEXTURE_2D, videoTexture);
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, video);
+          gl.uniform1i(uniformLocations.uvid, 0);
+            
+          gl.activeTexture(gl.TEXTURE1);
+          gl.bindTexture(gl.TEXTURE_2D, videoTexture2);
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, video2);
+          gl.uniform1i(uniformLocations.uvid2, 1);
+            
+            if (audioData) {
+            	analyser.getByteFrequencyData(audioData);
+            }
+                
+                gl.activeTexture(gl.TEXTURE2);
+                gl.bindTexture(gl.TEXTURE_2D, audioTexture);
+              
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, audioData.length, 1, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, audioData);
+                gl.uniform1i(uniformLocations.uaudio, 2);
+            
+
+            gl.uniform2f(uniformLocations.resolution, canvas.width, canvas.height);
+            for (let key in uniforms) {
+            	if(!uniforms[key].func){
+                gl.uniform1f(uniformLocations[key], uniforms[key]);
+                }else{
+                let funcout = uniforms[key].func();
+                gl.uniform1f(uniformLocations[key], funcout);	
+                }
+            }
+
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+            if(flagreadpixel){
+            	const pixel = new Uint8Array(4); // [R, G, B, A]
+    gl.readPixels(glX, glY, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+
+    pickedcolor = `rgb(${pixel[0]}, ${pixel[1]}, ${pixel[2]})`;
+    const r = pixel[0] / 255;
+    const g = pixel[1] / 255;
+    const b = pixel[2] / 255;
+    gl.uniform3f(uniformLocations.keyColor, r,g,b); // Default color
+document.body.style.background = pickedcolor;
+    console.log("Picked color:", pickedcolor);
+            	flagreadpixel = 0;    
+            }
+        }
+    
+
+var pickedcolor;
+var flagreadpixel = 0;    
+var glX,glY;
+        function pickColor(event) {
+        	const rect = canvas.getBoundingClientRect()
+	let ch = rect.bottom - rect.top;
+	let cw = rect.right - rect.left;
+	let ratY = canvas.height/ch;
+	let ratX = canvas.width/cw;
+   let  x = event.offsetX;
+    let y = event.offsetY;
+    console.log("x: " + x + " y: " + y)
+
+    let coords = getCanvasCoordinates(event)
+			ppx = x*ratX// (event.clientX/wiw)*canvas.height/2;
+	ppy =canvas.height -  y*ratY;//(canvas.height - event.offsetY*2.7) ;
+	//ppy = event.offsetY/canvas.height
+		ppx = ppx | 0
+		ppy = ppy| 0
+glX = ppx;
+glY = ppy;
+    // Convert to WebGL coordinates
+    //glX = Math.round(x * gl.canvas.width / rect.width);
+   // glY = Math.round((rect.height - y) * gl.canvas.height / rect.height);
+flagreadpixel = 1;    
+    
+    
+}
+
+
+function getCanvasCoordinates(clickEvent) {
+      
+      const canvasX = clickEvent.pageX - canvas.offsetLeft;
+      const canvasY = clickEvent.pageY - canvas.offsetTop;
+      return { x: canvasX, y: canvasY };
+    }
+
+// Attach event listener to the canvas
+canvas.addEventListener("click", (event) => {
+    const pickedColor = pickColor(event);
+    
+});
+
+    </script>
+</body>
+</html>
+void mainImage( out vec4 fragColor, in vec2 fragCoord )
+{
+    float time = iTime;
+    
+    float fading = (fade(time,-2.,4.));
+	vec2 uv = fragCoord.xy / iResolution.xy;
+    uv = pixUv(uv,8.,1.);
+    vec3 noise = vec3(rand(uv*(time+1.)));
+    vec3 ddd = iChannel0;
+	fragColor = vec4(noise*fading,1.0);
+    
+    
+    
+    vec4 uv3 = fco;
+	uv3.xy /= resolution;
+	float x = uv3.x;
+float y = uv3.y;
+float z = rand(uv3.xy);
+uv3.x = x;
+uv3.y = y;
+uv3.z = z;
+uv3.w = 1.;
+	gl_FragColor = uv3;
+	
+	
+}
+
+*/
