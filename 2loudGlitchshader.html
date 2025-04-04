@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    	<script>
+    	
+    this_is_at =
+    `
+    https://gist.github.com/Osmiogrzesznik/2f814920d4e2007fd4b97d14adad5a2c
+    `
+    
+    
+    
+    
+	window.onerror = function(...x) {
+					x[2] = x[2] - 8;
+					console.error(x);
+				}	
+		say = console.log
+		
+	</script>
+    <title>WebGL Video Shader</title>
+    <style>
+        body { text-align: center; background: black; color: white; margin:0; }
+        canvas { display: block; width:100vw; margin-top:10; }
+        .controls { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; }
+      #frag,#fragDefs{
+display: none;
+}  
+btn{
+border:1px solid cyan;	
+padding:10px;
+background:#ddaa55;
+}	
+pad{
+	margin-top:30vh;
+	padding-top:30vh;
+	margin-bottom:30vh;
+	padding-bottom:30vh;
+	height:30vh;
+	}
+	label{
+		display:block;
+		}
+    </style>
+</head>
+<body>
+<pre id="fragDefs">
+	precision highp float;	
+	#define PI 3.141592653589793
+    uniform sampler2D uvid;
+    uniform sampler2D uvid2;
+    uniform sampler2D uaudio;
+    uniform vec2 resolution;
+    uniform vec3 keyColor;
+    varying vec2 vTexUv;
+    
+   
+   
+	</pre>
+	<script type="shader" id="frag">
+		
+// https://www.shadertoy.com/view/Xt23Ry		
+	highp	float rand(float co) { return fract(sin(co*(91.3458)) * 47453.5453); }
+highp float rand(vec2 co){ return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453); }
+highp float rand(vec3 co){ return rand(co.xy+rand(co.z)); }
+
+    		
+		
+		
+		
+	float mapto(float value, float inMin, float inMax, float outMin, float outMax) {
+  return outMin + (outMax - outMin) * (value - inMin) / (inMax - inMin);
+}
+
+vec2 mapto(vec2 value, vec2 inMin, vec2 inMax, vec2 outMin, vec2 outMax) {
+  return outMin + (outMax - outMin) * (value - inMin) / (inMax - inMin);
+}
+
+vec3 mapto(vec3 value, vec3 inMin, vec3 inMax, vec3 outMin, vec3 outMax) {
+  return outMin + (outMax - outMin) * (value - inMin) / (inMax - inMin);
+}
+
+vec4 mapto(vec4 value, vec4 inMin, vec4 inMax, vec4 outMin, vec4 outMax) {
+  return outMin + (outMax - outMin) * (value - inMin) / (inMax - inMin);
+}
+
+
+
+
+float luma(vec4 rgba){
+	return smoothness*(rgba.r+rgba.g+rgba.b)/3.;
+	
+	}
+
+vec2 RGBtoUV(vec3 rgb) {
+  return vec2(
+    rgb.r * -0.169 + rgb.g * -0.331 + rgb.b *  0.5    + 0.5,
+    rgb.r *  0.5   + rgb.g * -0.419 + rgb.b * -0.081  + 0.5
+  );
+}    
+
+
+	
+	
+	
+	
+
+
+
+
+
+
+	vec4 simKey(sampler2D tex, sampler2D tex2, vec2 texCoord, float str) {
+float similarity3 = similarity;
+ similarity3 -=0.;
+ float smoo =smoothness;
+ vec4 rgba = texture2D(tex, texCoord);
+ if(onevid == 0.0){
+  rgba = mix(rgba ,texture2D(tex2, texCoord),whichvid);
+  }
+  float chromaDist;
+
+chromaDist = distance(texture2D(tex, texCoord).rgb, keyColor.rgb);
+float distrgbuv = distance(RGBtoUV(rgba.rgb), RGBtoUV(keyColor.rgb));
+//2.82842708 MAX DISTANCE VEC2 -1 TO 1
+//1.41421354 MAX DISTANCE VEC2 0 TO 1
+//1.73205078 MAX DISTANCE VEC3 0 TO 1
+distrgbuv = smoothstep(0.000,uDRgbUvTop,distrgbuv);
+chromaDist = mix(chromaDist,distrgbuv,distmethod);
+
+chromaDist = smoothstep(similarity,smoothness,chromaDist);
+
+return vec4(chromaDist);//rgba;
+}
+
+
+
+vec4 sim2(sampler2D tex,sampler2D tex2,vec2 uv){
+	//textures?!
+	float smoo = smoothness*.1;
+	vec4 pix0 = texture2D( tex, uv);
+	vec4 pix1 = texture2D( tex2, uv);
+	float diff = distance(RGBtoUV(pix0.rgb), RGBtoUV(pix1.rgb));
+	
+float diffMask = diff - similarity;
+  float fulldiffMask = pow(clamp(diffMask / smoo, 0., 1.), 1.5);
+  diffMask = fulldiffMask;//pow(diffMask / smoo*.01,1.5);
+  diffMask = pow(diffMask,0.5);
+  //float fulldiffMask = pow(clamp(diffMask / smoo, 0., 1.), 1.7);
+   
+
+  return vec4(fulldiffMask);//rgba;
+	}
+	
+
+	
+   void main(){ 
+vec4 sdc;
+vec4 mask; 
+ vec4 maskDiff = sim2(uvid,uvid2, vTexUv );
+vec4 sampledDiffuseColor = maskDiff;
+sampledDiffuseColor = sdc;
+
+
+vec4 pixl;
+vec2 vsteppeduvsmix;	
+
+			
+			float t = 0.5;//(sin(13.+time*.5)+1.0 )* 0.25;
+			float j = rr+.5;
+			float k = rr2+.5;
+			vec2 uv = vTexUv;
+			
+			float rndjk = rand(vec2(j,k));
+			
+			float fsteps = ((4.+stps)*rndjk*j*k);
+			float fstepsx = 9.*fsteps;//.*fsteps*j;
+			float fstepsy = 16.*fsteps;//.*fsteps*k;
+			vec2 vsteps = vec2(fstepsx,fstepsy);
+			vec2 uv2 = uv+stps2;;//-.5;//+vec2(j,k)*.01;
+			// this has to be done in reverse
+			// vsteps 
+			// what is uv2 ? is it changing
+			// uv2 is offset vmapuv
+			// make prevuvs variable 
+			vec2 vsteppeduvs = floor(uv2*vsteps)/vsteps;
+			vsteppeduvs +=0.5;
+			vsteppeduvsmix = mix(vsteppeduvs,uv,0.5);		
+			 rndjk = rand(vsteppeduvs*k*j);
+			
+			//vsteppeduvs to sample for color this is pixelated
+			 pixl = texture2D( uvid, vsteppeduvs);
+	
+
+		 vec2 pixl0uvs = vsteppeduvs;
+		
+		float lv0pixmask = simKey(uvid,uvid2,vsteppeduvs,strength).r+.1;
+		
+			// now - the brighter the pixel the bigger step?
+			 fsteps =stps*fsteps*lv0pixmask;
+			fstepsx = 9.*fsteps;//.*fsteps*j;
+			 fstepsy = 16.*fsteps;//.*fsteps*k;
+			 vsteps = vec2(fstepsx,fstepsy);
+			uv2 = vsteppeduvsmix;
+		//	 uv2 = uv2-.5;//+vec2(j,k)*.01;
+			;;//mess here
+			vsteppeduvs = floor(uv2*vsteps)/vsteps;    //-vsteps/2.;
+			vsteppeduvs +=.5;
+			vsteppeduvsmix = mix(vsteppeduvs,vsteppeduvsmix,0.5);		
+			rndjk = rand(vsteppeduvs*k*j);
+			
+			
+			 pixl = texture2D( uvid, vsteppeduvs);
+			 vec2 pixl1uvs = vsteppeduvs;
+			float lv1pixmask = simKey(uvid,uvid2,vsteppeduvs,strength).r+.5;
+			
+			
+			// now - the brighter the pixel the bigger step?
+			 fsteps =fsteps*(lv1pixmask);
+			fstepsx = fsteps*j;
+			 fstepsy = fsteps*k;
+			 vsteps = vec2(fstepsx,fstepsy);
+			uv2 = vsteppeduvsmix;
+			vsteppeduvs = floor(uv2*vsteps)/vsteps;    //-vsteps/2.;
+			vsteppeduvs +=.5;
+			vsteppeduvsmix = mix(vsteppeduvs,vsteppeduvsmix,0.5);		
+			rndjk = rand(vsteppeduvs*k*j)-.5;
+			
+			
+			
+
+			vec2 randstepuv = vec2(rand(vsteppeduvs+j),rand(vsteppeduvs+k))-.5*vec2(j,k);
+vec4 maskrsu = simKey( uvid,uvid2, randstepuv,strength);
+randstepuv = mix(randstepuv,uv,maskrsu.r);
+			//randstepuv = vsteppeduvs;
+			//randstepuv += uv/2.;
+			vec2 nuuv = randstepuv+.5;
+			
+			 
+			float howbad ;
+		
+			howbad = .99 ;
+		
+//vsteppeduvsmix = mix(vsteppeduvs,0.5);
+
+//mask = simKey( uvid,uvid2, vsteppeduvsmix,strength);
+mask = simKey( uvid,uvid2, uv,strength);
+	nuuv = mix(nuuv,uv,.995-crazy*.1);//.995);
+sdc = texture2D( uvid, vTexUv);
+vec4 sdcpix = texture2D( uvid, nuuv);
+vec4 maskpix = simKey(uvid,uvid2, nuuv,0.9);
+
+//sampledDiffuseColor = mix(sdc,sdcpix,maskpix.r*spill);
+ sampledDiffuseColor = texture2D( uvid, mix(uv,nuuv,mapto(mask.r,0.,1.,.0,.99)));
+vec4 ccc =sdcpix;
+
+ if (onevid == 0.0){
+ sampledDiffuseColor = ccc;
+ }
+			//vec4 c = sampledDiffuseColor;
+			//vec2 d = vec2(c.x*c.y,c.x*c.z)
+
+if(maskonly == -.1){
+sampledDiffuseColor = texture2D(uvid2,vTexUv);//mix(sdc,mask,0.5);
+}
+
+if(maskonly == 0.0){
+sdc = vec4(0.0);
+sdc = vec4(lv1pixmask);
+sampledDiffuseColor = mask;//mix(sdc,mask,0.5);
+}
+
+if(maskonly == 0.1){
+gl_FragColor = mask;
+sampledDiffuseColor = mix(sdc,mask,1.);
+}
+if(maskonly == 0.2){
+sampledDiffuseColor = sampledDiffuseColor;//mix(sampledDiffuseColor,mask,0.0);
+}
+
+if(maskonly == 0.3){
+gl_FragColor.rg = nuuv;
+sampledDiffuseColor.rg = nuuv;
+sampledDiffuseColor.b = 0.;
+sampledDiffuseColor.a = 0.;
+}
+if(maskonly == 0.4){
+gl_FragColor.rg = randstepuv;
+sampledDiffuseColor.rg = randstepuv;
+sampledDiffuseColor.b = 0.;
+sampledDiffuseColor.a = 0.;
+}
+gl_FragColor.rgb = sampledDiffuseColor.rgb;
+gl_FragColor.a = 1.;
+}  
+	</script>
+
+    <canvas id="glCanvas"></canvas>
+    <input type="file" id="videoInput">
+    <btn onclick = "play(!(pg++ % 2) )">play</btn>
+    <btn onclick = "plyv(!(pg++ % 2))">plyv</btn>
+    <btn onclick = "rew()">rew</btn>
+    <input type="file" id="audioInput" >
+    <video id="video" src="../../../DCIM/Camera/41.mp4" 
+cross-origin="anonymous" 
+        loop
+        muted
+        autoplay
+        style="display:none;">
+</video>
+<video id="video2" src="../../../DCIM/Camera/40.mp4" 
+cross-origin="anonymous" 
+        loop
+        muted
+        autoplay
+        style="display:none;">
+</video>
+    <audio id="audioElement" controls style="display:block;margin:auto;" src="../../../DCIM/Screen recordings/42.mp4" 
+loop
+       
+        autoplay></audio>
+    <div class="controls" id="controls">
+<input id='keyColorEl' type="color" value="#000000" valuecccc="#64311a">
+</div>
+    <pad>u</pad>
+    <script>
+    	var ranms = [];
+    	var pg=0;
+        // WebGL setup
+        const canvas = document.getElementById('glCanvas');
+        const gl = canvas.getContext('webgl2');
+        if (!gl) { alert('WebGL not supported'); }
+
+        // Fragment Shader with dynamic uniforms
+        let fragShaderSrc = fragDefs.innerText;
+        const controlsContainer = document.getElementById('controls');
+        const uniforms = {};
+
+        
+//=-------=-------=-------=-------=-------=-------=-------=-------=-------;;;;;;;;;=-------=-------=-------;        
+
+        // Adding uniforms here
+        UniformUIVec3("keyColor","#64311a");
+UniformUIFloat("uDRgbUvTop", 0, 0.09, 0.000001, 0.05);
+UniformUIFloat("distmethod", 0, 1, 0.000001, 0.5);
+UniformUIFloat("similarity", 0.000001, 1, 0.000001, 0.5);
+UniformUIFloat("smoothness", 0, 0.99999, 0.0001, 0.501);       
+UniformUIFloat("spill", -1, 1.0, 0.0000001, .5);
+UniformUIFloat("whichvid", 0, 1.0, 0.0000001, .5);
+UniformUIFloat("strength", 0.0000001, 1.0, 0.0000001, .5);                
+UniformUIFloat("stps", 0.000001, 8, 0.0000001, 1);      
+UniformUIFloat("stps2", -2, 2, .5, 0);         
+UniformUIFloat("crazy", -8, 2, .0001, 1);
+    
+UniformUIFloat("rr", 0.0, 1.0, 0.01, 1.0,v=>ranm(0,120,v));
+UniformUIFloat("rr2", 0.0, 1.0, 0.01, 1.0,v=>ranm(1,110,v));
+UniformUIFloat("aud00", -1.0, 1.0, 0.01, 1.0,v=>aud(v));
+UniformUIFloat("maskonly", -.1, 0.4, .1, .2);
+UniformUIFloat("onevid", 0.0, .1, 0.1, 0.1);                    
+//posterize colors
+// -=-------=-------=-------=-------=-------=-------=-------=-------=-------=-------=-------=-------=-------=-------=-------=-------=-------=-------
+
+function aud(v) {
+if(!audioData) return 1;
+let hl = audioData.length;
+hl /= 2;
+hl = hl | 0;
+return audioData[hl]/255
+}
+
+say(frag.innerText)
+        fragShaderSrc += frag.innerText;
+
+        let program, videoTexture, videoTexture2, positionBuffer, texCoordBuffer, vao, uniformLocations = {};
+        
+        const audio = document.getElementById('audioElement');
+        document.getElementById('audioInput').addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                audio.src = url;
+                //audio.play();
+                
+            }
+        });
+
+        
+let audioContext, analyser, audioData, audioTexture;
+ audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const source = audioContext.createMediaElementSource(audio);
+            analyser = audioContext.createAnalyser();
+            analyser.fftSize = 512;
+            source.connect(analyser);
+            analyser.connect(audioContext.destination);
+
+            audioData = new Uint8Array(analyser.frequencyBinCount);      
+
+
+// Video setup
+        
+        video.crossOrigin = "anonymous";
+        video.loop = true;
+        video.muted = true;
+        video.style.display = 'none';
+        video2.crossOrigin = "anonymous";
+        video2.loop = true;
+        video2.muted = true;
+        video2.style.display = 'none';
+        audio.crossOrigin = "anonymous";
+        audio.loop = true;
+        
+
+        document.getElementById('videoInput').addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+            	let askv = prompt("which video? 1 or 2 ?",1)
+            askv = parseInt(askv)
+            let vid;
+            vid = askv ==1? video:video2;
+                const url = URL.createObjectURL(file);
+                vid.src = url;
+                vid.play();
+            }
+        });
+        
+        
+
+        video.addEventListener('loadedmetadata', () => {
+        	let wiw = window.innerWidth;
+            let vw = video.videoWidth;
+            let vh = video.videoHeight;
+            let ratioWinToVid = wiw/vw;// vw usually big so faction 
+            let ratiowth = vw/vh;
+            vw *= ratioWinToVid;
+            
+            vh = vw/ratiowth;
+            canvas.width = vw*2;
+            canvas.height = vh*2;
+            canvas.style.width = "100vw";
+            //let ratio = vw/vh;
+            
+            gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+            initWebGL();
+            setupAudioProcessing();
+        });
+
+
+
+
+ function setupAudioProcessing() {
+            
+
+            
+        }
+
+
+
+function TRYRAWONEDAYcopyAudioDataToTexture(gl, audioData, textureArray) {
+  for (let i = 0; i < audioData.length; i++) {
+    textureArray[4 * i + 0] = audioData[i] // R
+    textureArray[4 * i + 1] = audioData[i] // G
+    textureArray[4 * i + 2] = audioData[i] // B
+    textureArray[4 * i + 3] = 255          // A
+  }
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, audioData.length, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, textureArray)
+}
+
+
+
+class Rao{
+	constructor(dur){
+		this.f=0;
+		this.dur = dur || 300;
+		this.pv = Math.random();
+		this.cv = Math.random();
+		this.ts = performance.now();
+		this.ted = this.ts+this.dur;
+		}
+	nuv(){
+		this.pv = this.cv
+		this.cv = Math.random();
+		this.ts = performance.now();
+		this.ted = this.ts+this.dur;
+		}
+	v(){
+		if(1-this.f<0){
+			this.nuv()
+			}
+		
+		
+		let {ts,dur,ted,f} = this;
+		f = (performance.now()-ts)/dur;
+		if(!f  && f !==0 ){
+			say(this)
+			throw Error(2);
+			}
+		this.f = f;
+		let f0 = 1-f;
+		let f1 = f;
+		let v = this.pv*f0+this.cv*f1;
+		return v;
+		}
+	}
+
+   function ranm(id=0,dur=3000,v){
+   	
+   	let rao = ranms[id];	
+   	if(!rao) {
+   	rao = new Rao(dur);
+   ranms[id] = rao;
+   return rao.v()*v;
+   }
+   else{
+   rao = ranms[id];	
+   //say(ranms);
+   if(!rao)throw Error(1);//return 0;//Math.random()-.5;
+   return rao.v()*v;
+   }
+}     
+
+function UniformUIVec3(id, value,func) {
+	// figure out something to avoid horrible android color picker
+	}
+
+        function UniformUIFloat(id, min, max, step, value,func) {
+        	
+            const input = document.createElement('input');
+            input.type = 'range';
+            input.id = id;
+            input.min = min;
+            input.max = max;
+            input.step = step;
+            input.value = value;
+
+            const rubycontainer = document.createElement('ruby');
+            controlsContainer.appendChild(rubycontainer);
+            rubycontainer.appendChild(input);
+       const rt = document.createElement('rt');     
+       rubycontainer.appendChild(rt);
+     const  valuespan = document.createElement('span');
+     const  namespan = document.createElement('span');
+       rt.appendChild(valuespan);
+       rt.appendChild(namespan);
+        valuespan.innerText = value;
+        namespan.innerText = " "+id;    
+/*
+ruby ftw
+
+how this little known and niche html element can help you to organize series of html range inputs
+without css and all that
+#ruby
+#javascript
+#html
+#furigana
+#japanese
+#coding
+#layout
+
+*/			
+			if(!func){
+			uniforms[id] = parseFloat(value);
+            input.addEventListener('input', (e) => {
+                uniforms[id] = parseFloat(e.target.value);
+                valuespan.innerText = e.target.value;               
+            });
+            }else{
+                
+            uniforms[id] = {func:function(){
+    valuespan.innerText = " func:"+input.value;          
+return func(input.value)
+}}
+            }
+            
+
+            fragShaderSrc += `uniform float ${id};\n`;
+        }
+        
+        function debugprint( gl, shader ) {
+console.error(getShaderErrors( gl, shader ));
+}
+
+function handleSource( string, errorLine ) {
+
+	const lines = string.split( '\n' );
+	const lines2 = [];
+
+	const from = Math.max( errorLine - 6, 0 );
+	const to = Math.min( errorLine + 6, lines.length );
+
+	for ( let i = from; i < to; i ++ ) {
+
+		const line = i + 1;
+		lines2.push( `${line === errorLine ? '>' : ' '} ${line}: ${lines[ i ]}` );
+
+	}
+
+	return lines2.join( '\n' );
+
+}
+
+        
+        function getShaderErrors( gl, shader ) {
+type = 'fragment';
+	const status = gl.getShaderParameter( shader, gl.COMPILE_STATUS );
+	const errors = gl.getShaderInfoLog( shader ).trim();
+
+	if ( status && errors === '' ) return '';
+
+	const errorMatches = /ERROR: 0:(\d+)/.exec( errors );
+	if ( errorMatches ) {
+
+		// --enable-privileged-webgl-extension
+		// console.log( '**' + type + '**', gl.getExtension( 'WEBGL_debug_shaders' ).getTranslatedShaderSource( shader ) );
+
+		const errorLine = parseInt( errorMatches[ 1 ] );
+		return type.toUpperCase() + '\n\n' + errors + '\n\n' + handleSource( gl.getShaderSource( shader ), errorLine );
+
+	} else {
+
+		return errors;
+
+	}
+
+}
+        
+        
+        
+        
+        
+        function initWebGL() {
+            // Create shaders
+            const vsSource = `
+                attribute vec4 position;
+                attribute vec2 texCoord;
+                varying vec2 vTexUv;
+                void main() {
+                    gl_Position = position;
+                    vTexUv = texCoord;
+                }
+            `;
+            const vertexShader = compileShader(gl.VERTEX_SHADER, vsSource);
+            const fragmentShader = compileShader(gl.FRAGMENT_SHADER, fragShaderSrc);
+
+            // Create program
+            program = gl.createProgram();
+            gl.attachShader(program, vertexShader);
+            gl.attachShader(program, fragmentShader);
+            gl.linkProgram(program);
+
+            if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+            	const programLog = gl.getProgramInfoLog( program ).trim();
+			
+                console.error("Shader link error: ",programLog);
+              
+                return;
+            }
+            gl.useProgram(program);
+
+            // Create buffers
+            positionBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+                -1, -1,  1, -1,  -1, 1,  
+                -1, 1,  1, -1,  1, 1
+            ]), gl.STATIC_DRAW);
+
+            texCoordBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+                0, 1,  1, 1,  0, 0,  
+                0, 0,  1, 1,  1, 0
+            ]), gl.STATIC_DRAW);
+
+            vao = gl.createVertexArray();
+            gl.bindVertexArray(vao);
+
+
+            const posLoc = gl.getAttribLocation(program, "position");
+            gl.enableVertexAttribArray(posLoc);
+            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+            gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+
+            const texLoc = gl.getAttribLocation(program, "texCoord");
+            gl.enableVertexAttribArray(texLoc);
+            gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+            gl.vertexAttribPointer(texLoc, 2, gl.FLOAT, false, 0, 0);
+
+            // Texture setup
+            gl.activeTexture(gl.TEXTURE0);
+            videoTexture = gl.createTexture();
+            
+            gl.bindTexture(gl.TEXTURE_2D, videoTexture);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+            
+            gl.activeTexture(gl.TEXTURE1);
+            videoTexture2 = gl.createTexture();
+            
+            gl.bindTexture(gl.TEXTURE_2D, videoTexture2);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+            
+            
+            
+            gl.activeTexture(gl.TEXTURE2);
+            audioTexture = gl.createTexture();
+            
+            gl.bindTexture(gl.TEXTURE_2D, audioTexture);
+            
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, audioData.length, 1, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, audioData);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+
+            
+
+            for (let key in uniforms) {
+                uniformLocations[key] = gl.getUniformLocation(program, key);
+            }
+uniformLocations.uvid =  gl.getUniformLocation(program, "uvid");
+           uniformLocations.uvid2 =  gl.getUniformLocation(program, "uvid2");
+           uniformLocations.uaudio =  gl.getUniformLocation(program, "uaudio");
+           gl.activeTexture(gl.TEXTURE0);
+           gl.uniform1i(uniformLocations.uvid, 0);
+           gl.activeTexture(gl.TEXTURE1);
+           gl.uniform1i(uniformLocations.uvid2, 1);
+           gl.activeTexture(gl.TEXTURE2);
+           gl.uniform1i(uniformLocations.uaudio, 2);
+            
+            uniformLocations.resolution = gl.getUniformLocation(program, "resolution");
+            uniformLocations.keyColor = gl.getUniformLocation(program, "keyColor");
+gl.uniform3f(uniformLocations.keyColor, 0.0, 0.0, 0.0); // Default color
+  
+            render();
+        }
+
+        function compileShader(type, source) {
+            const shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            	
+			const fragmentLog = gl.getShaderInfoLog( shader ).trim();
+                console.error("Shader error: ",fragmentLog);
+                debugprint(gl,shader);
+                gl.deleteShader(shader);
+                return null;
+            }
+            return shader;
+        }
+        
+       function  play(tt){
+//	video.currentTime = 0;
+	if(tt){
+video.play()
+video2.play()
+audio.play()
+}else{
+	video.pause()
+video2.pause()
+audio.pause()
+	}
+}
+  
+  function  rew(){
+video.currentTime = 0;
+video2.currentTime = 0;
+audio.currentTime = 0;
+	
+}
+  
+  function  plyv(tt){
+//	video.currentTime = 0;
+	if(tt){
+video.play()
+video2.play()
+
+}else{
+	video.pause()
+video2.pause()
+
+	}
+}
+  
+  function  rew(){
+video.currentTime = 0;
+video2.currentTime = 0;
+audio.currentTime = 0;
+	
+}
+  
+  
+  
+  
+        function render() {
+            requestAnimationFrame(render);
+
+            gl.useProgram(program);
+            gl.bindVertexArray(vao);
+
+           gl.activeTexture(gl.TEXTURE0);
+          gl.bindTexture(gl.TEXTURE_2D, videoTexture);
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, video);
+          gl.uniform1i(uniformLocations.uvid, 0);
+            
+          gl.activeTexture(gl.TEXTURE1);
+          gl.bindTexture(gl.TEXTURE_2D, videoTexture2);
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, video2);
+          gl.uniform1i(uniformLocations.uvid2, 1);
+            
+            if (audioData) {
+            	analyser.getByteFrequencyData(audioData);
+            }
+                
+                gl.activeTexture(gl.TEXTURE2);
+                gl.bindTexture(gl.TEXTURE_2D, audioTexture);
+              
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, audioData.length, 1, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, audioData);
+                gl.uniform1i(uniformLocations.uaudio, 2);
+            
+
+            gl.uniform2f(uniformLocations.resolution, canvas.width, canvas.height);
+            for (let key in uniforms) {
+            	if(!uniforms[key].func){
+                gl.uniform1f(uniformLocations[key], uniforms[key]);
+                }else{
+                let funcout = uniforms[key].func();
+                gl.uniform1f(uniformLocations[key], funcout);	
+                }
+            }
+
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+            if(flagreadpixel){
+            	const pixel = new Uint8Array(4); // [R, G, B, A]
+    gl.readPixels(glX, glY, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+
+    pickedcolor = `rgb(${pixel[0]}, ${pixel[1]}, ${pixel[2]})`;
+    const r = pixel[0] / 255;
+    const g = pixel[1] / 255;
+    const b = pixel[2] / 255;
+    gl.uniform3f(uniformLocations.keyColor, r,g,b); // Default color
+document.body.style.background = pickedcolor;
+    console.log("Picked color:", pickedcolor);
+            	flagreadpixel = 0;    
+            }
+        }
+    
+
+var pickedcolor = "#64311a";
+var flagreadpixel = 0;    
+var glX,glY;
+        function pickColor(event) {
+        	const rect = canvas.getBoundingClientRect()
+	let ch = rect.bottom - rect.top;
+	let cw = rect.right - rect.left;
+	let ratY = canvas.height/ch;
+	let ratX = canvas.width/cw;
+   let  x = event.offsetX;
+    let y = event.offsetY;
+    console.log("x: " + x + " y: " + y)
+
+    let coords = getCanvasCoordinates(event)
+			ppx = x*ratX// (event.clientX/wiw)*canvas.height/2;
+	ppy =canvas.height -  y*ratY;//(canvas.height - event.offsetY*2.7) ;
+	//ppy = event.offsetY/canvas.height
+		ppx = ppx | 0
+		ppy = ppy| 0
+glX = ppx;
+glY = ppy;
+    // Convert to WebGL coordinates
+    //glX = Math.round(x * gl.canvas.width / rect.width);
+   // glY = Math.round((rect.height - y) * gl.canvas.height / rect.height);
+flagreadpixel = 1;    
+    
+    
+}
+
+
+function getCanvasCoordinates(clickEvent) {
+      
+      const canvasX = clickEvent.pageX - canvas.offsetLeft;
+      const canvasY = clickEvent.pageY - canvas.offsetTop;
+      return { x: canvasX, y: canvasY };
+    }
+
+// Attach event listener to the canvas
+canvas.addEventListener("click", (event) => {
+    const pickedColor = pickColor(event);
+    
+});
+
+    </script>
+</body>
+</html>
